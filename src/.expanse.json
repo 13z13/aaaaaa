@@ -416,11 +416,11 @@
         "alphaTest": 0.5,
         "inreMaterial": "t1"
       },
-      "name": "biowhale-animated",
+      "name": "biowhale-animated2",
       "order": 2.333547450557762,
       "parentId": "8225a09f-29c6-443e-a00b-5d3ed94c208e",
       "position": [
-        1.947,
+        1.395,
         0.502,
         0.679
       ],
