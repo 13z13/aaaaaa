@@ -80,6 +80,9 @@ const crearCapa = (): {raiz: HTMLElement, titulo: HTMLElement, pista: HTMLElemen
         gap: 10px;
         overflow: visible;
       }
+      #inre-espera.inre-flotante .inre-marca {
+        display: none;
+      }
       #inre-espera.inre-flotante .inre-indicador {
         margin: 0;
         transform: scale(0.42);
@@ -173,6 +176,27 @@ const crearCapa = (): {raiz: HTMLElement, titulo: HTMLElement, pista: HTMLElemen
         #inre-espera, #inre-espera .inre-aviso { transition: none; }
       }
       #inre-espera .inre-titulo { font-size: 17px; font-weight: 600; margin: 0; }
+      #inre-espera .inre-marca {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        margin: 2px 0;
+      }
+      #inre-espera .inre-marca-zence {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        line-height: 1.05;
+        color: #f4f1ff;
+      }
+      #inre-espera .inre-marca-sub {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: rgba(185, 163, 255, 0.85);
+      }
       #inre-espera .inre-pista {
         font-size: 14px;
         line-height: 1.6;
@@ -195,6 +219,37 @@ const crearCapa = (): {raiz: HTMLElement, titulo: HTMLElement, pista: HTMLElemen
         color: #f0b4b1;
       }
       #inre-espera.inre-error .inre-aviso { max-height: 240px; opacity: 1; padding: 12px 14px; }
+      #inre-pwa-instalar {
+        position: fixed;
+        top: max(14px, env(safe-area-inset-top));
+        right: max(14px, env(safe-area-inset-right));
+        z-index: 2147483647;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 10px 7px 12px;
+        border-radius: 999px;
+        background: rgba(12, 12, 20, 0.84);
+        border: 1px solid rgba(167, 139, 250, 0.42);
+        backdrop-filter: blur(8px);
+        color: #f4f1ff;
+        font: 600 12px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.38);
+      }
+      #inre-pwa-instalar button {
+        appearance: none;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+        padding: 2px 4px;
+      }
+      #inre-pwa-instalar .inre-pwa-cerrar {
+        opacity: 0.7;
+        font-size: 14px;
+        line-height: 1;
+      }
   `
 
   if (existente !== null) {
@@ -219,8 +274,12 @@ const crearCapa = (): {raiz: HTMLElement, titulo: HTMLElement, pista: HTMLElemen
         <div></div><div></div><div></div><div></div><div></div><div></div>
       </div>
     </div>
-    <p class="inre-titulo">Preparando la experiencia…</p>
-    <p class="inre-pista">Buscando la cámara.</p>
+    <p class="inre-titulo">Cargando experiencia…</p>
+    <div class="inre-marca" aria-label="Zence Inverse Reality">
+      <span class="inre-marca-zence">Zence</span>
+      <span class="inre-marca-sub">Inverse Reality</span>
+    </div>
+    <p class="inre-pista"></p>
     <p class="inre-aviso"></p>
   `
   document.body.appendChild(raiz)
@@ -354,6 +413,16 @@ const montar = () => {
 
   arrancar()
 
+  const sinMarcadores = MARCADORES.length === 0
+  let estadoCamara = 'inicial'
+  let temporizadorPermiso: number | null = null
+  const limpiarPermiso = () => {
+    if (temporizadorPermiso !== null) {
+      window.clearTimeout(temporizadorPermiso)
+      temporizadorPermiso = null
+    }
+  }
+
   try {
     motor.addCameraPipelineModule({
       name: 'inre-espera',
@@ -400,15 +469,37 @@ const montar = () => {
 
       onCameraStatusChange: (evento: {status?: string, reason?: string}) => {
         const estado = evento.status
+        if (estado !== undefined) {
+          estadoCamara = estado
+        }
 
         if (estado === 'requesting') {
           escribir('Preparando la experiencia…', 'Pidiendo permiso para la cámara.', false)
+          limpiarPermiso()
+          temporizadorPermiso = window.setTimeout(() => {
+            if (!retirada && !errorAparecido && estadoCamara === 'requesting') {
+              escribir(
+                'Permiso de cámara pendiente',
+                'Acepta el aviso del navegador. Si usas un lector QR o visor interno, ábrelo en Safari o Chrome.',
+                false
+              )
+            }
+          }, 7500)
           return
         }
+
+        limpiarPermiso()
 
         if (estado === 'hasStream' || estado === 'hasVideo') {
           if (estado === 'hasVideo') {
             pasarAFlotante()
+            if (sinMarcadores) {
+              window.setTimeout(() => {
+                if (!errorAparecido && descargasActivas === 0) {
+                  retirar()
+                }
+              }, 900)
+            }
           }
           escribir(
             MARCADORES.length > 0 ? 'Cargando marcador…' : 'Cargando contenido…',
@@ -460,37 +551,121 @@ const montar = () => {
   }
 
   /*
-   * Red de seguridad: sin marcadores la capa se retira sola en cuanto el contenido
-   * está montado, y si por lo que sea ningún evento llega nunca, también. Un usuario
-   * mirando una pantalla de carga para siempre es el peor final posible.
+   * Red de seguridad: solo retira la capa automáticamente si la cámara ya arrancó
+   * (`hasVideo` o `hasStream`). Mientras siga esperando permiso (`requesting`) o
+   * inicializando, no se oculta la pantalla ni el aviso de permiso.
    */
-  const sinMarcadores = MARCADORES.length === 0
-  window.setTimeout(() => {
-    if (!errorAparecido) {
-      retirar()
+  const revisarCierreSeguro = () => {
+    if (errorAparecido || retirada) {
+      return
     }
-  }, sinMarcadores ? 1800 : 30000)
+    if (estadoCamara === 'hasVideo' || estadoCamara === 'hasStream') {
+      retirar()
+      return
+    }
+    if (estadoCamara === 'requesting' || estadoCamara === 'inicial') {
+      window.setTimeout(revisarCierreSeguro, 5000)
+    }
+  }
+  window.setTimeout(revisarCierreSeguro, sinMarcadores ? 3500 : 35000)
 }
+
+/*
+ * Botón discreto de instalación PWA cuando el navegador ofrece `beforeinstallprompt`.
+ */
+window.addEventListener('beforeinstallprompt', (evento: Event) => {
+  const promptEvento = evento as Event & {prompt?: () => Promise<void>}
+  if (typeof promptEvento.prompt !== 'function') {
+    return
+  }
+  evento.preventDefault()
+  if (document.getElementById('inre-pwa-instalar') !== null) {
+    return
+  }
+  const barra = document.createElement('div')
+  barra.id = 'inre-pwa-instalar'
+  const instalar = document.createElement('button')
+  instalar.type = 'button'
+  instalar.textContent = 'Instalar app'
+  instalar.addEventListener('click', () => {
+    void promptEvento.prompt?.().catch(() => {})
+    barra.remove()
+  })
+  const cerrar = document.createElement('button')
+  cerrar.type = 'button'
+  cerrar.className = 'inre-pwa-cerrar'
+  cerrar.setAttribute('aria-label', 'Cerrar aviso de instalación')
+  cerrar.textContent = '×'
+  cerrar.addEventListener('click', () => barra.remove())
+  barra.appendChild(instalar)
+  barra.appendChild(cerrar)
+  document.body.appendChild(barra)
+})
 
 /*
  * Se engancha en cuanto el motor existe. Se comprueba antes por si llegó primero: ese
  * evento no se vuelve a lanzar, y esperarlo dejaría la capa sin montar para siempre.
  *
- * Si el proyecto no carga motor AR (modo 3dOnly) o el script de xr.js tarda demasiado,
- * también se llama a montar() para retirar el splash inicial de index.html.
+ * En redes móviles lentas `xr.js` puede tardar más de 12 s: se muestra un aviso de
+ * descarga en curso en vez de abandonar `xrloaded`, y solo se avisa de fallo si
+ * el script falla o excede el margen largo.
  */
 if ((window as unknown as {XR8?: Motor}).XR8 !== undefined) {
   montar()
 } else {
   let montado = false
+  let temporizadorLento: number | null = null
+  let temporizadorFallo: number | null = null
+  const limpiarTemporizadores = () => {
+    if (temporizadorLento !== null) {
+      window.clearTimeout(temporizadorLento)
+      temporizadorLento = null
+    }
+    if (temporizadorFallo !== null) {
+      window.clearTimeout(temporizadorFallo)
+      temporizadorFallo = null
+    }
+  }
   const lanzar = () => {
     if (montado) {
       return
     }
     montado = true
+    limpiarTemporizadores()
     montar()
   }
   window.addEventListener('xrloaded', lanzar)
-  const hayMotorAr = document.querySelector('script[src*="xr.js"]') !== null
-  window.setTimeout(lanzar, hayMotorAr ? 12000 : 400)
+  const scriptMotor = document.querySelector('script[src*="xr.js"]')
+  if (scriptMotor === null) {
+    window.setTimeout(lanzar, 400)
+  } else {
+    const mostrarErrorMotor = (mensaje: string) => {
+      limpiarTemporizadores()
+      const raiz = document.getElementById('inre-espera')
+      const aviso = raiz?.querySelector('.inre-aviso') as HTMLElement | null
+      if (raiz !== null && aviso !== null) {
+        aviso.textContent = mensaje
+        raiz.classList.remove('inre-flotante', 'inre-quieto')
+        raiz.classList.add('inre-error')
+      }
+    }
+    scriptMotor.addEventListener('error', () => {
+      if (!montado) {
+        mostrarErrorMotor('No se pudo descargar el motor AR. Revisa tu conexión a internet y recarga la página.')
+      }
+    })
+    temporizadorLento = window.setTimeout(() => {
+      if (!montado) {
+        const pista = document.querySelector('#inre-espera .inre-pista')
+        if (pista !== null) {
+          pista.textContent = 'Descargando el motor AR (conexión lenta)…'
+        }
+      }
+    }, 10000)
+    temporizadorFallo = window.setTimeout(() => {
+      if (!montado) {
+        mostrarErrorMotor('El motor AR tardó demasiado en cargar. Revisa tu conexión y recarga la página.')
+      }
+    }, 45000)
+  }
 }

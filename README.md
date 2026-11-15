@@ -1,6 +1,6 @@
 # aaaaaa
 
-Experiencia de realidad aumentada creada con INRE.
+Experiencia de realidad aumentada creada con Zence Inverse Reality.
 
 **Modo:** World Effects (anclaje al suelo con SLAM)
 **Hosting:** GitHub Pages
@@ -12,13 +12,13 @@ Experiencia de realidad aumentada creada con INRE.
 
 Cada `push` a `main` dispara `.github/workflows/deploy.yml`, que compila el
 proyecto y lo publica en GitHub Pages. No hay que hacer nada más: **editar y guardar
-desde INRE crea un commit, y el commit actualiza la experiencia.**
+desde Zence Inverse Reality crea un commit, y el commit actualiza la experiencia.**
 
 Si es la primera vez, activa Pages en *Settings → Pages → Source: GitHub Actions*.
 
 ## Cómo editarlo
 
-**Desde el navegador**, con INRE: abre el editor, conecta tu cuenta de GitHub y elige
+**Desde el navegador**, con Zence Inverse Reality: abre el editor, conecta tu cuenta de GitHub y elige
 este repositorio.
 
 **En tu ordenador**, con el 8th Wall Studio de escritorio: este es el formato oficial
@@ -48,7 +48,7 @@ dos requisitos:
 src/.expanse.json       la escena: objetos, materiales, luces, componentes
 src/index.html          página de entrada; carga el motor
 src/*.ts                componentes propios
-src/inre-marcadores.ts  carga los marcadores en el motor; lo genera INRE
+src/inre-marcadores.ts  carga los marcadores en el motor; lo genera Zence Inverse Reality
 src/assets/             modelos, texturas, vídeo, audio
 image-targets/          marcadores de imagen
 config/                 configuración de webpack (MIT, de 8th Wall)

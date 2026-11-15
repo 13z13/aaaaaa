@@ -38,6 +38,11 @@ const config = {
           to: path.join(distPath, 'image-targets'),
           noErrorOnMissing: true,
         },
+        {
+          from: path.join(rootPath, 'public'),
+          to: distPath,
+          noErrorOnMissing: true,
+        },
       ],
     }),
     createVirtualEntryPlugin({srcDir: srcPath}),

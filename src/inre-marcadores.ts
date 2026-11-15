@@ -1,10 +1,12 @@
+import * as ecs from '@8thwall/ecs'
 import marcador0 from '../image-targets/386305641_724387343042558_3038697715686362368_n.json'
 import marcador1 from '../image-targets/cube2.json'
 
 /**
  * Carga los marcadores de imagen en el motor, y se queda vigilando que sigan puestos.
+ * Además silencia audio y video cuyo marcador ancestro aún no ha sido reconocido.
  *
- * Lo genera INRE: se reescribe en cada publicación a partir de los marcadores del
+ * Lo genera Zence Inverse Reality: se reescribe en cada publicación a partir de los marcadores del
  * proyecto, así que editarlo a mano no sirve de nada.
  *
  * El `imagePath` de cada JSON es una ruta relativa, y el motor la usa tal cual como
@@ -126,6 +128,96 @@ const ampliar = (): void => {
 }
 
 let vigilando = false
+const marcadoresVisibles = new Set<string>()
+const pausadosVideo = new Set<ecs.Eid>()
+const pausadosAudio = new Set<ecs.Eid>()
+const audiosTerminados = new Set<ecs.Eid>()
+let multimediaRegistrada = false
+const mundosConEventos = new WeakSet<object>()
+
+const marcadorAncestroOculto = (world: any, eid: ecs.Eid): boolean => {
+  let actual: ecs.Eid = eid
+  while (actual) {
+    if (ecs.ImageTarget.has(world, actual)) {
+      const info = ecs.ImageTarget.get(world, actual)
+      const nombreMarcador = typeof info?.name === 'string' ? info.name : ''
+      if (ecs.Hidden.has(world, actual)) return true
+      if (!nombreMarcador || !marcadoresVisibles.has(nombreMarcador)) return true
+      return false
+    }
+    actual = world.getParent(actual)
+  }
+  return false
+}
+
+const registrarBloqueoMultimedia = (): void => {
+  if (multimediaRegistrada) {
+    return
+  }
+  multimediaRegistrada = true
+
+  const videoQuery = ecs.defineQuery([ecs.VideoControls])
+  const audioQuery = ecs.defineQuery([ecs.Audio])
+
+  ecs.registerBehavior((world: any) => {
+    if (!mundosConEventos.has(world)) {
+      mundosConEventos.add(world)
+      world.events.addListener(world.events.globalId, ecs.events.REALITY_IMAGE_FOUND, (e: any) => {
+        const n = typeof e?.data?.name === 'string' ? e.data.name : ''
+        if (n) marcadoresVisibles.add(n)
+      })
+      world.events.addListener(world.events.globalId, ecs.events.REALITY_IMAGE_LOST, (e: any) => {
+        const n = typeof e?.data?.name === 'string' ? e.data.name : ''
+        if (n) marcadoresVisibles.delete(n)
+      })
+      world.events.addListener(world.events.globalId, ecs.events.AUDIO_END, (e: any) => {
+        if (e?.target) audiosTerminados.add(e.target)
+      })
+    }
+
+    for (const eid of videoQuery(world)) {
+      const oculto = marcadorAncestroOculto(world, eid)
+      const cursor = ecs.VideoControls.get(world, eid)
+      if (oculto) {
+        if (!cursor.paused) {
+          pausadosVideo.add(eid)
+          ecs.VideoControls.mutate(world, eid, (c: any) => {
+            c.paused = true
+          })
+        }
+      } else if (pausadosVideo.has(eid)) {
+        pausadosVideo.delete(eid)
+        if (cursor.paused) {
+          ecs.VideoControls.mutate(world, eid, (c: any) => {
+            c.paused = false
+          })
+        }
+      }
+    }
+
+    for (const eid of audioQuery(world)) {
+      const oculto = marcadorAncestroOculto(world, eid)
+      const cursor = ecs.Audio.get(world, eid)
+      if (oculto) {
+        if (!cursor.paused) {
+          pausadosAudio.add(eid)
+          ecs.Audio.mutate(world, eid, (c: any) => {
+            c.paused = true
+          })
+        }
+      } else if (pausadosAudio.has(eid)) {
+        pausadosAudio.delete(eid)
+        if (!audiosTerminados.has(eid) && cursor.paused) {
+          ecs.Audio.mutate(world, eid, (c: any) => {
+            c.paused = false
+          })
+        }
+      }
+    }
+  })
+}
+
+registrarBloqueoMultimedia()
 
 /**
  * Engancha el módulo que mantiene los marcadores puestos, y de paso cuenta en consola
@@ -148,40 +240,54 @@ const vigilarMotor = (xr: XrEngine) => {
     listeners: [
       {
         event: 'reality.imageloading',
-        process: ({detail}) => console.log(`[INRE] Procesando marcador(es): ${nombres(detail)}.`),
+        process: ({detail}) => console.log(`[Zence] Procesando marcador(es): ${nombres(detail)}.`),
       },
       {
         event: 'reality.imagescanning',
         process: ({detail}) => {
-          console.log(`[INRE] Buscando en la cámara: ${nombres(detail)}.`)
+          console.log(`[Zence] Buscando en la cámara: ${nombres(detail)}.`)
           // El motor ya está rastreando: es el momento de añadir el resto.
           ampliar()
         },
       },
       {
         event: 'reality.imagefound',
-        process: ({detail}) => console.log(`[INRE] Marcador reconocido: ${nombre(detail)}.`),
+        process: ({detail}) => {
+          const n = nombre(detail)
+          if (n && n !== '?') marcadoresVisibles.add(n)
+          console.log(`[Zence] Marcador reconocido: ${n}.`)
+        },
       },
       {
         event: 'reality.imagelost',
-        process: ({detail}) => console.log(`[INRE] Marcador perdido: ${nombre(detail)}.`),
+        process: ({detail}) => {
+          const n = nombre(detail)
+          if (n && n !== '?') marcadoresVisibles.delete(n)
+          console.log(`[Zence] Marcador perdido: ${n}.`)
+        },
       },
     ],
 
     onCameraStatusChange: ({status, reason}) => {
       if (status === 'failed') {
+        marcadoresVisibles.clear()
         console.warn(
-          `[INRE] El navegador no dio la cámara (${reason ?? 'motivo desconocido'}). `
+          `[Zence] El navegador no dio la cámara (${reason ?? 'motivo desconocido'}). `
           + 'Sin cámara no hay marcador que reconocer.'
         )
         return
       }
       if (status === 'hasDesktop3D') {
+        marcadoresVisibles.clear()
         console.warn(
-          '[INRE] El motor arrancó sin cámara, en su vista 3D de escritorio. En ella '
+          '[Zence] El motor arrancó sin cámara, en su vista 3D de escritorio. En ella '
           + 'los marcadores de imagen no funcionan: no hay imagen que analizar.'
         )
       }
+    },
+
+    onDetach: () => {
+      marcadoresVisibles.clear()
     },
 
     /*
