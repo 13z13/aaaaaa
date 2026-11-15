@@ -248,12 +248,16 @@ const montar = () => {
 
   /** Retira la capa con su transición y la quita del árbol al terminar. */
   const retirar = () => {
-    if (retirada || capa === null) {
+    if (retirada) {
+      return
+    }
+    const objetivo = capa?.raiz ?? document.getElementById('inre-espera')
+    if (objetivo === null) {
       return
     }
     retirada = true
-    capa.raiz.classList.add('inre-fuera')
-    window.setTimeout(() => capa?.raiz.remove(), 460)
+    objetivo.classList.add('inre-fuera')
+    window.setTimeout(() => objetivo.remove(), 460)
   }
 
   /** Cambia los textos sin tocar el resto. */
@@ -331,7 +335,20 @@ const montar = () => {
   const motor = (window as unknown as {XR8?: Motor}).XR8
 
   if (motor === undefined || typeof motor.addCameraPipelineModule !== 'function') {
-    // Sin motor no hay nada que esperar; mejor no tapar la pantalla.
+    // Sin motor AR (p.ej. escena 3D sin cámara): retira la pantalla de inicio en
+    // cuanto terminen las descargas de assets o tras un instante breve.
+    if (descargasActivas === 0) {
+      window.setTimeout(retirar, 600)
+    } else {
+      const esperarAssets = () => {
+        if (descargasActivas === 0) {
+          oyentesDescarga.delete(esperarAssets)
+          retirar()
+        }
+      }
+      oyentesDescarga.add(esperarAssets)
+      window.setTimeout(retirar, 15000)
+    }
     return
   }
 
@@ -390,11 +407,14 @@ const montar = () => {
         }
 
         if (estado === 'hasStream' || estado === 'hasVideo') {
+          if (estado === 'hasVideo') {
+            pasarAFlotante()
+          }
           escribir(
-            'Preparando la experiencia…',
+            MARCADORES.length > 0 ? 'Cargando marcador…' : 'Cargando contenido…',
             MARCADORES.length > 0
-              ? 'Cargando el marcador.'
-              : 'Cargando el contenido.',
+              ? 'Preparando la detección sobre la cámara.'
+              : 'Terminando de preparar la escena.',
             false
           )
           return
@@ -455,9 +475,22 @@ const montar = () => {
 /*
  * Se engancha en cuanto el motor existe. Se comprueba antes por si llegó primero: ese
  * evento no se vuelve a lanzar, y esperarlo dejaría la capa sin montar para siempre.
+ *
+ * Si el proyecto no carga motor AR (modo 3dOnly) o el script de xr.js tarda demasiado,
+ * también se llama a montar() para retirar el splash inicial de index.html.
  */
 if ((window as unknown as {XR8?: Motor}).XR8 !== undefined) {
   montar()
 } else {
-  window.addEventListener('xrloaded', montar)
+  let montado = false
+  const lanzar = () => {
+    if (montado) {
+      return
+    }
+    montado = true
+    montar()
+  }
+  window.addEventListener('xrloaded', lanzar)
+  const hayMotorAr = document.querySelector('script[src*="xr.js"]') !== null
+  window.setTimeout(lanzar, hayMotorAr ? 12000 : 400)
 }
