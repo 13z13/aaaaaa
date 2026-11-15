@@ -42,6 +42,7 @@ interface XrEngine {
     listeners?: {event: string, process: (event: {name: string, detail: unknown}) => void}[],
     onCameraStatusChange?: (event: {status: string, reason?: string}) => void,
     onAppResourcesLoaded?: (event: unknown) => void,
+    onDetach?: () => void,
   }) => void
 }
 
