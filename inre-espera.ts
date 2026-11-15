@@ -6,22 +6,50 @@
  * lienzo. Si algo falla dentro, se retira sola para no dejar la pantalla tapada.
  */
 
-const MARCADORES = ["386305641_724387343042558_3038697715686362368_n"]
+const MARCADORES = ["386305641_724387343042558_3038697715686362368_n","cube2"]
+
+/**
+ * Cuenta las descargas en curso de archivos del proyecto (assets/ o blobs) para
+ * saber si todavía hay modelos, vídeos o texturas pesados bajando en segundo plano.
+ */
+let descargasActivas = 0
+const oyentesDescarga = new Set<() => void>()
+const notificarDescargas = () => {
+  for (const fn of oyentesDescarga) {
+    fn()
+  }
+}
+
+if (typeof window.fetch === 'function') {
+  const fetchOriginal = window.fetch.bind(window)
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
+        : input.url
+    const esAsset = url.indexOf('assets/') !== -1
+    if (!esAsset) {
+      return fetchOriginal(input, init)
+    }
+    descargasActivas += 1
+    notificarDescargas()
+    return fetchOriginal(input, init).finally(() => {
+      descargasActivas = Math.max(0, descargasActivas - 1)
+      notificarDescargas()
+    })
+  }
+}
 
 /** El motor, tal como lo ve este archivo. */
 interface Motor {
   addCameraPipelineModule: (module: Record<string, unknown>) => void
 }
 
-/** Crea la capa una sola vez, con su marca de agua y sus textos. */
+/** Crea la capa una sola vez (o reutiliza la del arranque inicial en index.html). */
 const crearCapa = (): {raiz: HTMLElement, titulo: HTMLElement, pista: HTMLElement} => {
-  const raiz = document.createElement('div')
-  raiz.id = 'inre-espera'
-  raiz.setAttribute('role', 'status')
-  raiz.setAttribute('aria-live', 'polite')
-
-  raiz.innerHTML = `
-    <style>
+  const existente = document.getElementById('inre-espera')
+  const estilos = `
       #inre-espera {
         position: fixed;
         inset: 0;
@@ -38,11 +66,40 @@ const crearCapa = (): {raiz: HTMLElement, titulo: HTMLElement, pista: HTMLElemen
         color: #f2f4f8;
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
         text-align: center;
-        transition: opacity 420ms ease, visibility 420ms ease;
+        transition: opacity 420ms ease, visibility 420ms ease, background 300ms ease;
+      }
+      /*
+       * Modo flotante (sin fondo): cuando la cámara ya está abierta y se está
+       * cargando o esperando un marcador, la cámara debe verse detrás.
+       */
+      #inre-espera.inre-flotante {
+        inset: auto 0 28px 0;
+        background: transparent;
+        pointer-events: none;
+        padding: 0 16px;
+        gap: 10px;
+        overflow: visible;
+      }
+      #inre-espera.inre-flotante .inre-indicador {
+        margin: 0;
+        transform: scale(0.42);
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #inre-espera.inre-flotante .inre-titulo {
+        font-size: 13px;
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
+      }
+      #inre-espera.inre-flotante .inre-pista {
+        font-size: 12px;
+        color: rgba(242, 244, 248, 0.88);
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
       }
       @media (max-height: 360px) {
-        #inre-espera { gap: 8px; padding: 12px 16px; }
-        #inre-espera .inre-indicador { margin: 8px 0 10px; transform: scale(.72); }
+        #inre-espera:not(.inre-flotante) { gap: 8px; padding: 12px 16px; }
+        #inre-espera:not(.inre-flotante) .inre-indicador { margin: 8px 0 10px; transform: scale(.72); }
       }
       #inre-espera.inre-fuera { opacity: 0; visibility: hidden; pointer-events: none; }
       /*
@@ -138,7 +195,25 @@ const crearCapa = (): {raiz: HTMLElement, titulo: HTMLElement, pista: HTMLElemen
         color: #f0b4b1;
       }
       #inre-espera.inre-error .inre-aviso { max-height: 240px; opacity: 1; padding: 12px 14px; }
-    </style>
+  `
+
+  if (existente !== null) {
+    const style = document.createElement('style')
+    style.textContent = estilos
+    document.head.appendChild(style)
+    return {
+      raiz: existente,
+      titulo: existente.querySelector('.inre-titulo') as HTMLElement,
+      pista: existente.querySelector('.inre-pista') as HTMLElement,
+    }
+  }
+
+  const raiz = document.createElement('div')
+  raiz.id = 'inre-espera'
+  raiz.setAttribute('role', 'status')
+  raiz.setAttribute('aria-live', 'polite')
+  raiz.innerHTML = `
+    <style>${estilos}</style>
     <div class="inre-indicador" aria-hidden="true">
       <div class="inre-cubo">
         <div></div><div></div><div></div><div></div><div></div><div></div>
@@ -148,7 +223,6 @@ const crearCapa = (): {raiz: HTMLElement, titulo: HTMLElement, pista: HTMLElemen
     <p class="inre-pista">Buscando la cámara.</p>
     <p class="inre-aviso"></p>
   `
-
   document.body.appendChild(raiz)
 
   return {
@@ -162,6 +236,8 @@ const montar = () => {
   let capa: ReturnType<typeof crearCapa> | null = null
   let errorAparecido = false
   let retirada = false
+  let escaneando = false
+  let marcadorEncontrado = false
 
   const arrancar = () => {
     if (capa === null) {
@@ -193,10 +269,61 @@ const montar = () => {
     }
   }
 
+  /** Pasa al cubo pequeño sin fondo sobre la cámara cuando ya se puede apuntar. */
+  const pasarAFlotante = () => {
+    if (errorAparecido || retirada) {
+      return
+    }
+    const actual = arrancar()
+    actual.raiz.classList.add('inre-flotante')
+  }
+
+  const actualizarTextoFlotante = () => {
+    if (retirada || errorAparecido) {
+      return
+    }
+    if (marcadorEncontrado) {
+      if (descargasActivas === 0) {
+        escribir('Marcador reconocido', 'Mostrando el contenido.', false)
+        retirar()
+      } else {
+        pasarAFlotante()
+        escribir(
+          'Cargando marcador…',
+          `Descargando contenido (${descargasActivas} pendiente${descargasActivas === 1 ? '' : 's'}).`,
+          false
+        )
+      }
+      return
+    }
+    if (!escaneando) {
+      return
+    }
+    pasarAFlotante()
+    if (descargasActivas > 0) {
+      escribir(
+        'Cargando marcador…',
+        `Descargando archivos (${descargasActivas} en curso). Apunta al marcador.`,
+        false
+      )
+    } else {
+      escribir(
+        'Apunta al marcador',
+        MARCADORES.length > 0
+          ? 'Enfoca la imagen completa, de frente y con buena luz.'
+          : 'Ya puedes mirar alrededor.',
+        true
+      )
+    }
+  }
+
+  oyentesDescarga.add(actualizarTextoFlotante)
+
   const avisar = (texto: string) => {
     const actual = arrancar()
     errorAparecido = true
     ;(actual.raiz.querySelector('.inre-aviso') as HTMLElement).textContent = texto
+    actual.raiz.classList.remove('inre-flotante')
     actual.raiz.classList.add('inre-error')
     actual.raiz.classList.remove('inre-quieto')
   }
@@ -217,41 +344,40 @@ const montar = () => {
       listeners: [
         {
           event: 'reality.imageloading',
-          process: () => escribir(
-            'Preparando la experiencia…',
-            MARCADORES.length > 0
-              ? 'Analizando la imagen del marcador.'
-              : 'Preparando el contenido.',
-            false
-          ),
+          process: () => {
+            if (!escaneando) {
+              escribir(
+                'Preparando la experiencia…',
+                MARCADORES.length > 0
+                  ? 'Analizando la imagen del marcador.'
+                  : 'Preparando el contenido.',
+                false
+              )
+            }
+          },
         },
         {
           event: 'reality.imagescanning',
-          process: () => escribir(
-            'Apunta al marcador',
-            MARCADORES.length > 0
-              ? 'Enfoca la imagen completa, de frente y con buena luz.'
-              : 'Ya puedes mirar alrededor.',
-            // Ya no se está trabajando: se está esperando al usuario.
-            true
-          ),
+          process: () => {
+            escaneando = true
+            actualizarTextoFlotante()
+          },
         },
         {
           event: 'reality.imagefound',
           process: () => {
-            /*
-             * Un último mensaje antes de irse. Los 380 ms que dura el cierre del cubo
-             * son justo el rato en que el contenido está apareciendo, y sin texto la
-             * capa se iría con el rótulo de «apunta al marcador» todavía puesto: leería
-             * como si no hubiera pasado nada.
-             */
-            escribir('Marcador reconocido', 'Mostrando el contenido.', false)
-            retirar()
+            marcadorEncontrado = true
+            actualizarTextoFlotante()
           },
         },
         {
           event: 'reality.imageupdated',
-          process: () => retirar(),
+          process: () => {
+            marcadorEncontrado = true
+            if (descargasActivas === 0) {
+              retirar()
+            }
+          },
         },
       ],
 

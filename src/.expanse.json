@@ -31,7 +31,15 @@
       ]
     },
     "38225a4d-b7ad-4a6d-b4eb-aa400c36d01c": {
-      "components": {},
+      "components": {
+        "1c62563e-89ea-40e1-8a61-bd9591ae0ab0": {
+          "id": "1c62563e-89ea-40e1-8a61-bd9591ae0ab0",
+          "name": "inre-gif",
+          "parameters": {
+            "alphaTest": 0
+          }
+        }
+      },
       "geometry": {
         "type": "box",
         "width": 1,
@@ -41,22 +49,28 @@
       "id": "38225a4d-b7ad-4a6d-b4eb-aa400c36d01c",
       "material": {
         "type": "basic",
-        "color": "#7611b6",
-        "textureFiltering": "sharp"
+        "color": "#ffffff",
+        "roughness": 0.85,
+        "metalness": 0,
+        "textureSrc": {
+          "type": "asset",
+          "asset": "assets/Aguacate_gif.gif"
+        },
+        "inreMaterial": "Aguacate_gif"
       },
       "name": "Cubo",
       "order": 1.333547450557762,
       "parentId": "8225a09f-29c6-443e-a00b-5d3ed94c208e",
       "position": [
         0,
-        0.362,
-        0.5000000000000002
+        -1.187,
+        0.5
       ],
       "rotation": [
-        0.7071067811865476,
+        0.7071067811865475,
         0,
         0,
-        0.7071067811865476
+        0.7071067811865475
       ],
       "scale": [
         1,
@@ -66,6 +80,70 @@
       "shadow": {
         "castShadow": true,
         "receiveShadow": true
+      },
+      "videoControls": {
+        "loop": true,
+        "paused": false
+      }
+    },
+    "55693966-b4c3-4974-9f82-794388008e27": {
+      "components": {
+        "de500cdc-01c9-4157-8342-cbfc7ddc047b": {
+          "id": "de500cdc-01c9-4157-8342-cbfc7ddc047b",
+          "name": "inre-material-modelo",
+          "parameters": {}
+        },
+        "e52c2091-214c-4093-8592-58c4345b9430": {
+          "id": "e52c2091-214c-4093-8592-58c4345b9430",
+          "name": "inre-gif",
+          "parameters": {
+            "alphaTest": 0
+          }
+        }
+      },
+      "geometry": null,
+      "gltfModel": {
+        "src": {
+          "type": "asset",
+          "asset": "assets/biowhale-animated.glb"
+        },
+        "animationClip": "Take 001",
+        "loop": true
+      },
+      "id": "55693966-b4c3-4974-9f82-794388008e27",
+      "material": {
+        "type": "basic",
+        "color": "#ffffff",
+        "roughness": 0.85,
+        "metalness": 0,
+        "textureSrc": {
+          "type": "asset",
+          "asset": "assets/Aguacate_gif.gif"
+        },
+        "inreMaterial": "Aguacate_gif"
+      },
+      "name": "biowhale-animated",
+      "order": 0.2391711460898306,
+      "parentId": "c355f034-ec97-4892-a8e3-340eb53a7c37",
+      "position": [
+        0.227,
+        0,
+        0.84
+      ],
+      "rotation": [
+        0.7071067811865475,
+        0,
+        0,
+        0.7071067811865475
+      ],
+      "scale": [
+        0.239,
+        0.288,
+        0.288
+      ],
+      "videoControls": {
+        "loop": true,
+        "paused": false
       }
     },
     "718ccebe-eada-42e5-b484-52fce35d8e08": {
@@ -134,8 +212,44 @@
         1
       ]
     },
-    "dadb9e2c-63f7-4958-8841-f610ad17cc0e": {
+    "c355f034-ec97-4892-a8e3-340eb53a7c37": {
       "components": {},
+      "geometry": null,
+      "id": "c355f034-ec97-4892-a8e3-340eb53a7c37",
+      "imageTarget": {
+        "name": "cube2"
+      },
+      "material": null,
+      "name": "Marcador · cube2",
+      "order": 6.5,
+      "parentId": "9d4858d7-0209-4854-a909-91bcbaa84f24",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    "dadb9e2c-63f7-4958-8841-f610ad17cc0e": {
+      "components": {
+        "8946615a-1ea4-4afd-8bae-f03d9259b299": {
+          "id": "8946615a-1ea4-4afd-8bae-f03d9259b299",
+          "name": "inre-gif",
+          "parameters": {
+            "alphaTest": 0
+          }
+        }
+      },
       "geometry": {
         "type": "cylinder",
         "radius": 0.4,
@@ -144,23 +258,28 @@
       "id": "dadb9e2c-63f7-4958-8841-f610ad17cc0e",
       "material": {
         "type": "basic",
-        "color": "#8b8b9e",
-        "roughness": 0.45,
-        "metalness": 0.05
+        "color": "#ffffff",
+        "roughness": 0.85,
+        "metalness": 0,
+        "textureSrc": {
+          "type": "asset",
+          "asset": "assets/Aguacate_gif.gif"
+        },
+        "inreMaterial": "Aguacate_gif"
       },
       "name": "Cilindro",
       "order": 0.3335474505577619,
       "parentId": "8225a09f-29c6-443e-a00b-5d3ed94c208e",
       "position": [
         -1.523,
-        -0.3340000000000002,
+        0.042,
         0.5
       ],
       "rotation": [
-        0.7071067811865476,
+        0.7071067811865475,
         0,
         0,
-        0.7071067811865476
+        0.7071067811865475
       ],
       "scale": [
         1,
@@ -170,7 +289,61 @@
       "shadow": {
         "castShadow": true,
         "receiveShadow": true
+      },
+      "videoControls": {
+        "loop": true,
+        "paused": false
       }
+    },
+    "df63002a-6ee6-4879-a138-3c5c6f6d57e9": {
+      "components": {
+        "a74bada7-032d-48b4-845e-996535276ee6": {
+          "id": "a74bada7-032d-48b4-845e-996535276ee6",
+          "name": "inre-material-modelo",
+          "parameters": {}
+        }
+      },
+      "geometry": null,
+      "gltfModel": {
+        "src": {
+          "type": "asset",
+          "asset": "assets/biowhale-animated.glb"
+        },
+        "animationClip": "Take 001",
+        "loop": true
+      },
+      "id": "df63002a-6ee6-4879-a138-3c5c6f6d57e9",
+      "material": {
+        "type": "basic",
+        "color": "#ffffff",
+        "roughness": 0.85,
+        "metalness": 0,
+        "textureSrc": {
+          "type": "asset",
+          "asset": "assets/Whale_Diffuse.png"
+        },
+        "repeatY": -1,
+        "inreMaterial": "Whale"
+      },
+      "name": "biowhale-animated",
+      "order": 3.333547450557762,
+      "parentId": "8225a09f-29c6-443e-a00b-5d3ed94c208e",
+      "position": [
+        0,
+        1.38,
+        0.491
+      ],
+      "rotation": [
+        0.7071067811865475,
+        0,
+        0,
+        0.7071067811865475
+      ],
+      "scale": [
+        0.248,
+        0.248,
+        0.248
+      ]
     },
     "e36fd1a2-8f7d-4240-a567-e514ac808c72": {
       "components": {},
@@ -199,6 +372,73 @@
         1,
         1
       ]
+    },
+    "e539c1a2-cd23-4e3e-baa6-65000260d24c": {
+      "components": {
+        "15f130d9-8658-433b-aefa-ba4d42c55983": {
+          "id": "15f130d9-8658-433b-aefa-ba4d42c55983",
+          "name": "inre-video",
+          "parameters": {
+            "alphaTest": 0.5,
+            "blending": "normal",
+            "depthTest": true,
+            "depthWrite": false,
+            "forceTransparent": true,
+            "side": "double"
+          }
+        },
+        "e1e696e9-07a9-4951-a6bc-268c3ee07f35": {
+          "id": "e1e696e9-07a9-4951-a6bc-268c3ee07f35",
+          "name": "inre-material-modelo",
+          "parameters": {}
+        }
+      },
+      "geometry": null,
+      "gltfModel": {
+        "src": {
+          "type": "asset",
+          "asset": "assets/biowhale-animated.glb"
+        },
+        "animationClip": "Take 001",
+        "loop": true
+      },
+      "id": "e539c1a2-cd23-4e3e-baa6-65000260d24c",
+      "material": {
+        "type": "video",
+        "color": "#ffffff",
+        "textureSrc": {
+          "type": "asset",
+          "asset": "assets/t1.webm"
+        },
+        "forceTransparent": true,
+        "depthWrite": false,
+        "side": "double",
+        "alphaTest": 0.5,
+        "inreMaterial": "t1"
+      },
+      "name": "biowhale-animated",
+      "order": 2.333547450557762,
+      "parentId": "8225a09f-29c6-443e-a00b-5d3ed94c208e",
+      "position": [
+        1.947,
+        0.502,
+        0.679
+      ],
+      "rotation": [
+        0.7071067811865475,
+        0,
+        0,
+        0.7071067811865475
+      ],
+      "scale": [
+        0.268,
+        0.268,
+        0.268
+      ],
+      "videoControls": {
+        "loop": true,
+        "paused": false
+      }
     }
   },
   "spaces": {

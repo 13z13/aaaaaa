@@ -1,0 +1,27 @@
+{
+  "imagePath": "image-targets/cube2_luminance.png",
+  "resources": {
+    "originalImage": "cube2_original.png",
+    "croppedImage": "cube2_cropped.png",
+    "thumbnailImage": "cube2_thumbnail.png",
+    "luminanceImage": "cube2_luminance.png"
+  },
+  "name": "cube2",
+  "type": "PLANAR",
+  "metadata": null,
+  "moveable": false,
+  "physicalWidthInMeters": null,
+  "properties": {
+    "top": 0,
+    "left": 0,
+    "width": 748,
+    "height": 748,
+    "isRotated": false,
+    "originalWidth": 748,
+    "originalHeight": 748
+  },
+  "userMetadataIsJson": true,
+  "loadAutomatically": true,
+  "created": 1794742564830,
+  "updated": 1794742564830
+}
